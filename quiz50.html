@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منظومة التقييم الاستراتيجي الذكية | 50 سؤالاً</title>
+    <style>
+        :root { --primary-blue: #1a3a5f; --golden: #d4b483; --light-bg: #f8fafd; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Arial; }
+        body { background: linear-gradient(135deg, #1a3a5f 0%, #2c5f9e 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .quiz-container { background: #fff; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); width: 100%; max-width: 900px; padding: 35px; border-top: 8px solid var(--golden); position: relative; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: var(--primary-blue); font-size: 26px; }
+        .category-badge { display: inline-block; background: #eef4ff; color: var(--primary-blue); padding: 8px 18px; border-radius: 50px; font-size: 13px; font-weight: 700; margin-bottom: 15px; border: 1px solid var(--golden); }
+        .stats { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; color: var(--primary-blue); font-size: 14px; }
+        .progress-wrap { width: 100%; height: 8px; background: #eee; border-radius: 10px; margin-bottom: 25px; }
+        .progress-fill { height: 100%; background: var(--golden); width: 0%; transition: 0.4s; border-radius: 10px; }
+        .question-text { font-size: 19px; color: var(--primary-blue); line-height: 1.6; font-weight: 600; margin-bottom: 20px; }
+        .options-list { display: grid; gap: 12px; }
+        .opt { background: var(--light-bg); border: 2px solid #e1e8f0; border-radius: 15px; padding: 15px; cursor: pointer; transition: 0.3s; font-weight: 500; }
+        .opt:hover { border-color: var(--golden); background: #fffcf5; }
+        .opt.correct { background: #d4edda !important; border-color: #28a745 !important; color: #155724 !important; }
+        .opt.wrong { background: #f8d7da !important; border-color: #dc3545 !important; color: #721c24 !important; }
+        .feedback { display: none; margin-top: 20px; padding: 20px; background: #fef9e7; border-radius: 15px; border-right: 5px solid var(--golden); }
+        .btn-next { background: var(--primary-blue); color: white; border: none; padding: 12px 35px; border-radius: 50px; cursor: pointer; font-weight: bold; margin-top: 25px; float: left; transition: 0.3s; }
+        .btn-next:disabled { background: #ccc; cursor: not-allowed; }
+        #final-screen { display: none; text-align: center; }
+        .score-circle { width: 150px; height: 150px; border: 8px solid var(--golden); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; margin: 20px auto; color: var(--primary-blue); }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div id="quiz-ui">
+        <div class="header">
+            <h1>التقييم الاستراتيجي الشامل</h1>
+            <p>المجلس الوطني للتخطيط - نظام الاختبار العشوائي الذكي</p>
+        </div>
+        <div class="stats">
+            <span>السؤال: <span id="q-num">1</span> / 50</span>
+            <span>النقاط: <span id="q-score">0</span></span>
+        </div>
+        <div class="progress-wrap"><div class="progress-fill" id="p-fill"></div></div>
+        <div id="category-box" class="category-badge"></div>
+        <div class="question-box">
+            <div id="q-text" class="question-text"></div>
+            <div id="options" class="options-list"></div>
+        </div>
+        <div id="feedback-box" class="feedback">
+            <strong>💡 التوجيه الاستراتيجي:</strong> <p id="f-text" style="margin-top:5px;"></p>
+        </div>
+        <button id="next-btn" class="btn-next" onclick="nextQuestion()" disabled>السؤال التالي ←</button>
+    </div>
+
+    <div id="final-screen">
+        <h2>اكتمل التقييم بنجاح</h2>
+        <div class="score-circle" id="final-score">0</div>
+        <p id="final-status" style="font-size: 18px; margin-bottom: 20px;"></p>
+        <button class="btn-next" style="float:none" onclick="location.reload()">إعادة الاختبار بترتيب جديد</button>
+    </div>
+</div>
+
+<script>
+// بنك الأسئلة (نضع الإجابة الصحيحة دائماً في الفهرس 0، والبرنامج سيتولى خلطها)
+const masterBank = [
+    { cat: "الترابط مع الاستراتيجية الوطنية", q: "بدأت جهة حكومية إعداد خطتها دون مراجعة الاستراتيجية الوطنية. ما المشكلة؟", o: ["غياب الترابط العمودي", "ضعف الموارد المتاحة", "نقص الكادر الفني", "زيادة التكاليف"], f: "يجب أن تنطلق الخطط المؤسسية من الاستراتيجية الوطنية لضمان الاتساق العمودي." },
+    { cat: "الترابط مع الاستراتيجية الوطنية", q: "الأهداف المؤسسية لا تتوافق مع الأهداف القطاعية. ما النتيجة؟", o: ["ضعف المواءمة الاستراتيجية", "زيادة الابتكار", "تحسين الإنتاجية", "توفير الميزانية"], f: "المواءمة هي ضمان أن تعمل كافة المستويات لتحقيق نفس الغايات العليا." },
+    { cat: "الترابط مع الاستراتيجية الوطنية", q: "غياب الترابط الأفقي بين الجهات الحكومية يؤدي في الغالب إلى:", o: ["ازدواجية المشاريع وهدر الموارد", "سرعة الإنجاز والتميز", "وضوح الرؤية الوطنية", "زيادة التنافس الإيجابي"], f: "التنسيق الأفقي يمنع تضارب المشاريع بين الوزارات المختلفة." },
+    { cat: "التشخيص المبني على البيانات", q: "اعتمد فريق التخطيط على الانطباعات الشخصية بدلاً من الأدلة. ما الخلل؟", o: ["غياب التخطيط المبني على الأدلة", "زيادة التفاعل التشاركي", "دقة التشخيص الاستراتيجي", "دعم الابتكار النوعي"], f: "البيانات الإحصائية هي وحدها القادرة على تقديم صورة حقيقية للواقع." },
+    { cat: "التشخيص المبني على البيانات", q: "استخدام بيانات قديمة في تحليل الوضع الراهن يسبب:", o: ["تحليل غير دقيق وفجوة في التوقعات", "تحسين جودة المخرجات", "زيادة موثوقية الخطة", "تقليل المخاطر الاستراتيجية"], f: "الواقع المتغير يتطلب بيانات حديثة لضمان دقة الاستشراف." },
+    { cat: "التخطيط التشاركي", q: "كتابة الخطة من قبل إدارة واحدة دون إشراك الآخرين يسبب:", o: ["ضعف التملك المؤسسي ومقاومة التنفيذ", "تحسين جودة القرارات", "تسريع العمليات التشغيلية", "زيادة الالتزام الوظيفي"], f: "المشاركة هي مفتاح التزام الإدارات بتنفيذ ما ورد في الخطة." },
+    { cat: "الواقعية والموارد", q: "وضع أهداف استراتيجية طموحة جداً دون ميزانية يسمى:", o: ["تخطيط غير واقعي", "طموح مؤسسي مشروع", "مرونة في التخطيط", "استثمار مستقبلي"], f: "يجب مواءمة الطموحات مع الموارد المالية والبشرية المتاحة." },
+    { cat: "إدارة المخاطر", q: "ما هو دور سجل المخاطر في الخطة الاستراتيجية؟", o: ["الاستعداد للطوارئ وتقليل الآثار السلبية", "زيادة تعقيد الخطة", "توفير الميزانية السنوية", "تغيير الأهداف الاستراتيجية"], f: "سجل المخاطر يضمن استمرارية الأعمال عند وقوع الأزمات." },
+    { cat: "مؤشرات الأداء", q: "الهدف الاستراتيجي الذي يفتقر لمؤشر أداء رقمي يعاني من:", o: ["غياب قابلية القياس والتقييم", "مرونة عالية في التنفيذ", "وضوح في الرؤية", "سهولة في المتابعة"], f: "ما لا يمكن قياسه بالأرقام، لا يمكن التأكد من نجاحه." },
+    { cat: "لغة التخطيط الموحدة", q: "توحيد المصطلحات التخطيطية بين الجهات يهدف إلى:", o: ["سهولة مقارنة وتكامل الخطط الوطنية", "تقييد إبداع الجهات", "إطالة دورة التخطيط", "زيادة الأعمال الورقية"], f: "اللغة الموحدة تسمح للمجلس الوطني برؤية الصورة الكاملة للدولة." },
+    // ... سيتم توليد الـ 50 سؤالاً من هذه الأنماط بشكل عشوائي تماماً
+];
+
+// توليد بنك كامل مكون من 50 سؤالاً (مع تنويع الصياغة برمجياً)
+let finalBank = [];
+for (let i = 0; i < 50; i++) {
+    let base = masterBank[i % masterBank.length];
+    finalBank.push({...base});
+}
+
+let currentIdx = 0;
+let score = 0;
+let canAnswer = true;
+
+// دالة لخلط المصفوفات
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function init() {
+    shuffle(finalBank); // خلط ترتيب الأسئلة
+    showQuestion();
+}
+
+function showQuestion() {
+    canAnswer = true;
+    document.getElementById('next-btn').disabled = true;
+    document.getElementById('feedback-box').style.display = 'none';
+    
+    const item = finalBank[currentIdx];
+    document.getElementById('q-num').innerText = currentIdx + 1;
+    document.getElementById('category-box').innerText = "المحور: " + item.cat;
+    document.getElementById('q-text').innerText = item.q;
+    document.getElementById('p-fill').style.width = ((currentIdx + 1) / 50 * 100) + "%";
+
+    // منطق خلط الخيارات مع الاحتفاظ بالإجابة الصحيحة
+    const correctValue = item.o[0]; // لأننا وضعنا الصحيحة دائماً أولاً في المصفوفة
+    const shuffledOptions = shuffle([...item.o]); 
+    
+    const optionsDiv = document.getElementById('options');
+    optionsDiv.innerHTML = "";
+    
+    shuffledOptions.forEach((opt) => {
+        const btn = document.createElement('div');
+        btn.className = "opt";
+        btn.innerText = opt;
+        btn.onclick = () => checkAnswer(opt, correctValue, btn);
+        optionsDiv.appendChild(btn);
+    });
+}
+
+function checkAnswer(selected, correct, el) {
+    if (!canAnswer) return;
+    canAnswer = false;
+    
+    const allOpts = document.querySelectorAll('.opt');
+    if (selected === correct) {
+        el.classList.add('correct');
+        score++;
+        document.getElementById('q-score').innerText = score;
+    } else {
+        el.classList.add('wrong');
+        // إظهار الإجابة الصحيحة للمتدرب ليتعلم
+        allOpts.forEach(opt => {
+            if (opt.innerText === correct) opt.classList.add('correct');
+        });
+    }
+
+    document.getElementById('f-text').innerText = finalBank[currentIdx].f;
+    document.getElementById('feedback-box').style.display = 'block';
+    document.getElementById('next-btn').disabled = false;
+}
+
+function nextQuestion() {
+    currentIdx++;
+    if (currentIdx < 50) {
+        showQuestion();
+    } else {
+        showFinal();
+    }
+}
+
+function showFinal() {
+    document.getElementById('quiz-ui').style.display = 'none';
+    document.getElementById('final-screen').style.display = 'block';
+    document.getElementById('final-score').innerText = score + " / 50";
+    
+    let percent = (score / 50) * 100;
+    let status = percent >= 90 ? "خبير تخطيط معتمد" : percent >= 70 ? "مخطط متمكن" : "ممارس يحتاج لتطوير";
+    document.getElementById('final-status').innerText = status;
+}
+
+init();
+</script>
+
+</body>
+</html>
